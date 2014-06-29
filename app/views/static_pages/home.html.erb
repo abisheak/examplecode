@@ -1,0 +1,7 @@
+<% provide(:title, full_title('Home')) %>
+<div class="center hero-unit">
+	<title> <%= yield(:title) %></title>
+	<h1>Sample App</h1>
+	<h2>This is the home page for the sample app</h2>
+	<%= link_to "sign up now!", signup_path, class: "btn btn-large btn-primary" %>
+</div>
