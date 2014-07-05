@@ -61,17 +61,77 @@ describe "user_pages" do
   
   describe "Edit page" do
     let(:user) { FactoryGirl.create(:user) }
-    before { visit edit_user_path(user) }
-      
-      describe "page" do
-        it { should have_selector('h1', text: "Update your profile") }
-        it { should have_selector('title', text: "Edit user") }
-      end
+    before do 
+      sign_in user
+      visit edit_user_path(user)
+    end
     
-      describe "with invalid information" do
-        before { click_button "Save Changes" }
-        
-        it { should have_content('error') }
+    describe "page" do
+      it { expect(page).to have_selector('h1', text: "Update your profile") }
+      it { expect(page).to have_selector('title', text: "Edit user") }
+    end
+    
+    describe "with invalid information" do
+      before { click_button "Save Changes" }
+      it { expect(page).to have_content('error') }
+    end
+      
+    describe "with valid information" do
+      let(:new_name) { "New Name" }
+      let(:new_email) { "new@example.com" }
+      before do
+        fill_in "Name", with: new_name
+        fill_in "Email", with: new_email
+        fill_in "Password", with: user.password
+        fill_in "Confirm Password", with: user.password
+        click_button "Save Changes"
       end
+        
+      it { expect(page).to have_selector('title', text: new_name) }
+      it { expect(page).to have_selector('div.alert.alert-success') }
+      it { expect(page).to have_link('Sign out', href: signout_path) }
+      specify { user.reload.name.should == new_name }
+      specify { user.reload.email.should == new_email }
+    end  
+  end
+  
+  describe "index" do
+    let(:user) { FactoryGirl.create(:user) }
+    before do
+      sign_in user
+      visit users_path
+    end
+    
+    it { expect(page).to have_selector('title', text: 'All users') }
+    it { expect(page).to have_selector('h1', text: 'All users') }
+    
+    describe "pagination" do
+      it { expect(page).to have_selector('div.pagination') }
+    
+      it "should list each user" do
+        User.paginate(page: 1).each do |user|
+          page.should have_selector('li', text: user.name)
+        end
+      end
+      
+      describe "delete links" do
+        expect(page).to_not have_link('delete')
+        
+        describe "as an admin user" do
+          let(:admin) { FactoryGirl.create(:admin) }
+          before do
+            sign_in admin
+            visit users_path
+          end
+          
+          expect(page).to have_link('delete', href: user_path(User.first))
+          it "should be able to delete another user"
+            expect { click_link('delete') }.to change(User, :count).by(-1)
+          end
+          
+          expect(page).to_not have_link('delete', href: user_path(admin))
+        end
+      end
+    end  
   end
 end
